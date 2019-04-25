@@ -16946,12 +16946,12 @@
 	  location.href = 'https:' + location.href.substring(location.protocol.length);
 	}
 
-	var baseLayers = {
+	const baseLayers = {
 	  Wikimedia: leafletSrc.tileLayer.provider('Wikimedia'),
 	  OpenStreetMap: leafletSrc.tileLayer.provider('OpenStreetMap')
 	};
 
-	var map = leafletSrc.map('map').setView([47.23, 11.3], 13);
+	const map = leafletSrc.map('map').setView([47.23, 11.3], 13);
 	leafletSrc.control.layers(baseLayers).addTo(map);
 	baseLayers.Wikimedia.addTo(map);
 	map.attributionControl.setPrefix(
@@ -16975,7 +16975,7 @@
 	  })
 	  .addTo(map);
 
-	var BldrwnschLayer = leafletSrc.GeoJSON.extend({
+	const BldrwnschLayer = leafletSrc.GeoJSON.extend({
 	  initialize: function() {
 	    leafletSrc.GeoJSON.prototype.initialize.call(this, null, {
 	      pointToLayer: function(feature, latlng) {
@@ -16988,8 +16988,8 @@
 	    });
 	  },
 	  onAdd: function(map) {
-	    var spinner = new Spinner().spin(document.getElementById('map'));
-	    var worker = new Worker('./bundle.cluster.js');
+	    const spinner = new Spinner().spin(document.getElementById('map'));
+	    const worker = new Worker('./bldrwnsch.cluster.js');
 	    worker.onmessage = function(e) {
 	      if (e.data.ready) {
 	        spinner.stop();
@@ -17007,7 +17007,7 @@
 	      console.warn(e);
 	    };
 	    function update() {
-	      var bounds = map.getBounds();
+	      const bounds = map.getBounds();
 	      worker.postMessage({
 	        bbox: [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()],
 	        zoom: map.getZoom()
@@ -17023,9 +17023,9 @@
 	    });
 	  },
 	  createClusterIcon: function(feature, latlng) {
-	    var count = feature.properties.point_count;
-	    var size = count < 100 ? 'small' : count < 1000 ? 'medium' : 'large';
-	    var icon = leafletSrc.divIcon({
+	    const count = feature.properties.point_count;
+	    const size = count < 100 ? 'small' : count < 1000 ? 'medium' : 'large';
+	    const icon = leafletSrc.divIcon({
 	      html: `<div><span>${feature.properties.point_count_abbreviated}</span></div>`,
 	      className: `marker-cluster marker-cluster-${size}`,
 	      iconSize: leafletSrc.point(40, 40)
@@ -17033,20 +17033,19 @@
 	    return leafletSrc.marker(latlng, {icon: icon});
 	  },
 	  createIcon: function(feature, latlng) {
-	    var camera =
+	    const camera =
 	      'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Photo-request.svg/24px-Photo-request.svg.png';
-	    var icon = leafletSrc.icon({
+	    const icon = leafletSrc.icon({
 	      iconUrl: camera,
 	      iconSize: [24, 24],
-	      iconAnchor: [8, 13],
-	      popupAnchor: [8, 13]
+	      iconAnchor: [8, 13]
 	    });
-	    var marker = leafletSrc.marker(latlng, {icon: icon});
-	    var data = feature.properties;
-	    var description = data.description ? data.description.replace(/_/g, ' ') + '<br>' : '';
-	    var title = data.title ? data.title.replace(/_/g, ' ') : '';
-	    var geo = `<a href="geo:${latlng.lat},${latlng.lng}">geo:</a><br>`;
-	    var link = `<a href="https://de.wikipedia.org/wiki/${title}" target="_blank">${title}</a>`;
+	    const marker = leafletSrc.marker(latlng, {icon: icon});
+	    const data = feature.properties;
+	    const description = data.description ? data.description.replace(/_/g, ' ') + '<br>' : '';
+	    const title = data.title ? data.title.replace(/_/g, ' ') : '';
+	    const geo = `<a href="geo:${latlng.lat},${latlng.lng}">geo:</a><br>`;
+	    const link = `<a href="https://de.wikipedia.org/wiki/${title}" target="_blank">${title}</a>`;
 	    if (leafletSrc.Browser.mobile) {
 	      marker.bindPopup(description + geo + link);
 	    } else {
