@@ -16942,40 +16942,7 @@
 	    ];
 	}
 
-	if (location.host === 'tools.wmflabs.org' && location.protocol !== 'https:') {
-	  location.href = 'https:' + location.href.substring(location.protocol.length);
-	}
-
-	const baseLayers = {
-	  Wikimedia: leafletSrc.tileLayer.provider('Wikimedia'),
-	  OpenStreetMap: leafletSrc.tileLayer.provider('OpenStreetMap')
-	};
-
-	const map = leafletSrc.map('map').setView([47.23, 11.3], 13);
-	leafletSrc.control.layers(baseLayers).addTo(map);
-	baseLayers.Wikimedia.addTo(map);
-	map.attributionControl.setPrefix(
-	  [
-	    '<a href="https://github.com/simon04/bldrwnsch/" target="_blank">@simon04/bldrwnsch</a>',
-	    '(<a href="https://github.com/simon04/bldrwnsch/blob/master/LICENSE" target="_blank">GPL v3</a>)'
-	  ].join(' ')
-	);
-	leafletSrc.hash(map);
-	leafletSrc.Control.geocoder({
-	  expand: 'click',
-	  position: 'topleft',
-	  defaultMarkGeocode: true
-	}).addTo(map);
-	leafletSrc.control
-	  .locate({
-	    locateOptions: {
-	      watch: true,
-	      enableHighAccuracy: true
-	    }
-	  })
-	  .addTo(map);
-
-	const BldrwnschLayer = leafletSrc.GeoJSON.extend({
+	var BldrwnschLayer = leafletSrc.GeoJSON.extend({
 	  initialize: function() {
 	    leafletSrc.GeoJSON.prototype.initialize.call(this, null, {
 	      pointToLayer: function(feature, latlng) {
@@ -16988,11 +16955,13 @@
 	    });
 	  },
 	  onAdd: function(map) {
-	    const spinner = new Spinner().spin(document.getElementById('map'));
+	    this._spinner = new Spinner();
 	    const worker = new Worker('./bldrwnsch.cluster.js');
+	    this._worker = worker;
+	    this.fetch(undefined);
 	    worker.onmessage = function(e) {
 	      if (e.data.ready) {
-	        spinner.stop();
+	        this._spinner.stop();
 	        map.on('moveend', update);
 	        update();
 	      } else if (e.data.expansionZoom) {
@@ -17003,9 +16972,9 @@
 	      }
 	    }.bind(this);
 	    worker.onerror = function(e) {
-	      spinner.stop();
+	      this._spinner.stop();
 	      console.warn(e);
-	    };
+	    }.bind(this);
 	    function update() {
 	      const bounds = map.getBounds();
 	      worker.postMessage({
@@ -17021,6 +16990,18 @@
 	        });
 	      }
 	    });
+	  },
+	  fetch: function(filter) {
+	    let filterInvert = false;
+	    if (filter && filter[0] === '!') {
+	      filter = filter.substring(1);
+	      filterInvert = true;
+	    }
+	    if (typeof filter === 'string') {
+	      filter = new RegExp(filter, 'i');
+	    }
+	    this._spinner.spin(document.getElementById('map'));
+	    this._worker.postMessage({fetch: true, filter: filter, filterInvert: filterInvert});
 	  },
 	  createClusterIcon: function(feature, latlng) {
 	    const count = feature.properties.point_count;
@@ -17056,6 +17037,65 @@
 	  }
 	});
 
-	new BldrwnschLayer().addTo(map);
+	var FilterControl = Geocoder.extend({
+	  options: {
+	    expand: 'click',
+	    suggestMinLength: Number.POSITIVE_INFINITY,
+	    position: 'topright',
+	    placeholder: 'Filter...'
+	  },
+	  onAdd: function(map) {
+	    const container = Geocoder.prototype.onAdd.call(this, map);
+	    container.title = 'Filter shown markers...';
+	    const icon = container.querySelector('.leaflet-control-geocoder-icon');
+	    icon.style.backgroundImage = 'none';
+	    icon.innerHTML = 'F';
+	    return container;
+	  },
+	  _geocode: function() {
+	    const filter = this._input.value;
+	    this.options.fetch(filter);
+	  }
+	});
+
+	if (location.host === 'tools.wmflabs.org' && location.protocol !== 'https:') {
+	  location.href = 'https:' + location.href.substring(location.protocol.length);
+	}
+
+	const baseLayers = {
+	  Wikimedia: leafletSrc.tileLayer.provider('Wikimedia'),
+	  OpenStreetMap: leafletSrc.tileLayer.provider('OpenStreetMap')
+	};
+
+	const map = leafletSrc.map('map').setView([47.23, 11.3], 13);
+	leafletSrc.control.layers(baseLayers).addTo(map);
+	baseLayers.Wikimedia.addTo(map);
+	map.attributionControl.setPrefix(
+	  [
+	    '<a href="https://github.com/simon04/bldrwnsch/" target="_blank">@simon04/bldrwnsch</a>',
+	    '(<a href="https://github.com/simon04/bldrwnsch/blob/master/LICENSE" target="_blank">GPL v3</a>)'
+	  ].join(' ')
+	);
+	leafletSrc.hash(map);
+	leafletSrc.Control.geocoder({
+	  expand: 'click',
+	  position: 'topleft',
+	  defaultMarkGeocode: true
+	}).addTo(map);
+	leafletSrc.control
+	  .locate({
+	    locateOptions: {
+	      watch: true,
+	      enableHighAccuracy: true
+	    }
+	  })
+	  .addTo(map);
+
+	const bldrwnschLayer = new BldrwnschLayer().addTo(map);
+	new FilterControl({
+	  fetch: function(string) {
+	    bldrwnschLayer.fetch(string);
+	  }
+	}).addTo(map);
 
 }());
